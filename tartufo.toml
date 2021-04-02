@@ -1,0 +1,7 @@
+[tool.tartufo]
+cleanup = true
+entropy = true
+exclude-paths = ".tartufo-excludes"
+json = false
+regex = true
+repo-path = "."
