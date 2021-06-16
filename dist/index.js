@@ -2708,6 +2708,7 @@ var core = __webpack_require__(470);
 var settings = __webpack_require__(814);
 var os = __webpack_require__(87);
 var path = __webpack_require__(622);
+var fs = __webpack_require__(747);
 
 function run() {
   try {
@@ -2717,19 +2718,56 @@ function run() {
     // update from action input
     settings.update(templateXml);
 
+    // format to xml
+    var formattedXml = settings.formatSettings(templateXml);
+
+    // get custom output path
+    var settingsPath = getSettingsPath();
+ 
     // write template to filepath
-    var settingsPath = path.join(os.homedir(), '.m2', 'settings.xml');
-    settings.writeSettings(settingsPath, templateXml);
+    writeSettings(settingsPath, formattedXml);
 
   } catch (error) {
     core.setFailed(error.message);
   }
 }
 
+function getSettingsPath() {
+  var outputFileInput = core.getInput('output_file');
+
+  if (!outputFileInput) {
+    return getDefaultSettingsPath();
+  }
+
+  // resolve env variables in path
+  if (outputFileInput.trim() != '') {
+    return outputFileInput.trim().replace(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b])
+  }
+
+  return getDefaultSettingsPath();
+}
+
+function getDefaultSettingsPath() { 
+  return path.join(os.homedir(), '.m2', 'settings.xml');
+}
+
+function writeSettings(settingsPath, formattedXml) {
+  if (!fs.existsSync(path.dirname(settingsPath))) {
+      core.info("creating directory for settings.xml: " + settingsPath);
+      fs.mkdirSync(path.dirname(settingsPath));
+  }
+
+  core.info("writing settings.xml to path: " + path.resolve(settingsPath));
+  fs.writeFileSync(settingsPath, formattedXml);
+}
+
 run();
 
 module.exports = {
-  run
+  run,
+  getSettingsPath,
+  getDefaultSettingsPath,
+  writeSettings
 }
 
 /***/ }),
@@ -3481,19 +3519,7 @@ function formatSettings(templateXml) {
     });
 }
 
-function writeSettings(settingsPath, templateXml) {
-    if (!fs.existsSync(path.dirname(settingsPath))) {
-        core.info("creating ~/.m2 directory");
-        fs.mkdirSync(path.dirname(settingsPath));
-    }
-
-    var formattedXml = formatSettings(templateXml);
-
-    core.info("writing settings.xml to path: " + settingsPath)
-    fs.writeFileSync(settingsPath, formattedXml);
-}
-
-function update(templateXml) { 
+function update(templateXml) {
     this.updateActiveProfiles(templateXml);
     this.updateServers(templateXml);
     this.updateMirrors(templateXml);
@@ -3503,7 +3529,7 @@ function update(templateXml) {
     this.updatePluginGroups(templateXml)
 }
 
-function updateActiveProfiles(templateXml) { 
+function updateActiveProfiles(templateXml) {
 
     var activeProfilesInput = core.getInput('active_profiles');
 
@@ -3521,7 +3547,7 @@ function updateActiveProfiles(templateXml) {
 
     // apply custom repostories
     activeProfiles.forEach((activeProfileInput) => {
-        activeProfileXml = templateXml.createElement("activeProfile");
+        var activeProfileXml = templateXml.createElement("activeProfile");
         activeProfileXml.textContent = activeProfileInput;
         templateXml
             .getElementsByTagName('activeProfiles')[0]
@@ -3532,7 +3558,7 @@ function updateActiveProfiles(templateXml) {
 
 function applyDefaultActiveProfile(templateXml) {
     var defaultActiveProfile = getDefaultActiveProfileTemplate();
-    
+
     templateXml
         .getElementsByTagName('activeProfiles')[0]
         .appendChild(defaultActiveProfile);
@@ -3631,7 +3657,7 @@ function updateRepositories(templateXml) {
 
 function applyDefaultRepository(templateXml) {
     var defaultRepositoryTemplate = getDefaultRepositoryTemplate();
-    
+
     templateXml
         .getElementsByTagName('profiles')[0]
         .getElementsByTagName('repositories')[0]
@@ -3749,7 +3775,6 @@ module.exports = {
     getSettingsTemplate,
     getTemplate,
     formatSettings,
-    writeSettings,
     update,
     updateActiveProfiles,
     updateServers,
