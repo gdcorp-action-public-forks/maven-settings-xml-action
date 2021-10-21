@@ -16,6 +16,7 @@
           <url>http://foo.bar</url>
           <releases>
             <enabled>true</enabled>
+            <updatePolicy>always</updatePolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>

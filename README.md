@@ -4,7 +4,7 @@
 
 Github Action to create maven settings (`~/.m2/settings.xml`). 
 
-Supports `<servers>`, `<repositories>`, `<pluginRepositories>`, `<pluginGroups>`, `<mirrors>`, `<activeProfiles>`, and `<profiles>`.
+Supports `<servers>`, `<repositories>`, `<pluginRepositories>`, `<pluginGroups>`, `<mirrors>`, `<activeProfiles>`, `<proxies>`, and `<profiles>`.
 
 ## Inputs
 
@@ -85,12 +85,24 @@ Set of `activeProfile` elements, which each have a value of a `profile` `id`. An
 
 Reference: [Maven Settings > Active Profiles](https://maven.apache.org/settings.html#Active_Profiles)
 
+### `proxies`
+
+**Optional** json array of proxies to add to settings.xml.
+* **id** - The unique identifier for this proxy. This is used to differentiate between proxy elements.
+* **active** - true if this proxy is active. This is useful for declaring a set of proxies, but only one may be active at a time.
+* **protocol, host, port** - The protocol://host:port of the proxy, separated into discrete elements.
+* **username, password** - These elements appear as a pair denoting the login and password required to authenticate to this proxy server.
+* **nonProxyHosts** - This is a list of hosts which should not be proxied. The delimiter of the list is the expected type of the proxy server; the example above is pipe delimited - comma delimited is also common.
+
+
+Reference: [Maven Settings > Proxies](https://maven.apache.org/settings.html#proxies)
+
 ### `output_file`
 **Optional** String path of to generate `settings.xml`. By default, `~/.m2/settings.xml` is used. 
 
 When using a custom `output_file`, for example:
 ```yaml
-- uses: whelk-io/maven-settings-xml-action@v18
+- uses: whelk-io/maven-settings-xml-action@v20
   with:
     output_file: foo/custom.xml
 ```
@@ -103,7 +115,7 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
 
 ````yaml
 - name: maven-settings-xml-action
-  uses: whelk-io/maven-settings-xml-action@v18
+  uses: whelk-io/maven-settings-xml-action@v20
   with:
     repositories: '[{ "id": "some-repository", "url": "http://some.repository.url" }]'
     plugin_repositories: '[{ "id": "some-plugin-repository", "url": "http://some.plugin.repository.url" }]'
@@ -157,7 +169,7 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
 
 ````yaml
 - name: maven-settings-xml-action
-  uses: whelk-io/maven-settings-xml-action@v18
+  uses: whelk-io/maven-settings-xml-action@v20
   with:
     repositories: >
       [
@@ -166,10 +178,14 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
           "name": "some-repository-name",
           "url": "http://some.repository.url",
           "releases": {
-            "enabled": "true"
+            "enabled": "true",
+            "updatePolicy": "always",
+            "checksumPolicy": "fail"
           },
           "snapshots": {
-            "enabled": "false"
+            "enabled": "false",
+            "updatePolicy": "always",
+            "checksumPolicy": "fail"
           }
         }
       ]
@@ -227,6 +243,19 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
         "some.plugin.group.id",
         "some.other.plugin.group.id"
       ]
+    proxies: >
+      [
+        {
+          "id": "foo-proxy",
+          "active": "true",
+          "protocol": "http",
+          "host": "https://proxy.example.com",
+          "port": "443",
+          "username": "foo",
+          "password": "bar",
+          "nonProxyHosts": "noproxy1.example.com|noproxy2.example.com"
+        }
+      ]
     active_profiles: >
       [
         "some-profile"
@@ -256,9 +285,13 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
                     <url>http://some.repository.url</url>
                     <releases>
                         <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                        <checksumPolicy>fail</checksumPolicy>
                     </releases>
                     <snapshots>
                         <enabled>false</enabled>
+                        <updatePolicy>always</updatePolicy>
+                        <checksumPolicy>fail</checksumPolicy>
                     </snapshots>
                 </repository>
             </repositories>
@@ -318,6 +351,19 @@ The generated `settings.xml` will be created at `/home/runner/work/{repo}/foo/cu
         <pluginGroup>some.plugin.group.id</pluginGroup>
         <pluginGroup>some.other.plugin.group.id</pluginGroup>
     </pluginGroups>
+
+    <proxies>
+        <proxy>
+            <id>foo-proxy</id>
+            <active>true</active>
+            <protocol>http</protocol>
+            <host>https://proxy.example.com</host>
+            <port>443</port>
+            <username>foo</username>
+            <password>bar</password>
+            <nonProxyHosts>noproxy1.example.com|noproxy2.example.com</nonProxyHosts>
+        </proxy>
+    </proxies>
   
 </settings>
 ````
